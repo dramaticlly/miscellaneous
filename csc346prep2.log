@@ -1,0 +1,54 @@
+#Write a query to report all the movie titles in the database. We have started writing this query for you. Finish it by replacing each "xxx" with something appropriate.
+
+\project_{title} movies;
+
+#Write a query to report all the characters in the database.
+
+\project_{character} roles;
+
+
+#Write a query to report the title of all movies longer than 145 minutes.
+
+\project_{title} (\select_{length>145} movies);
+
+
+#Write a query to find all the characters in movies directed by Kubrick. Report the characters and corresponding movie titles, in that order.
+
+\project_{title,character} (\select_{movies.mid = roles.mid} ((\select_{director='Kubrick'} movies) \product roles));
+
+#PREP3
+#schema
+#sales(eid, day, amount)
+#employee(eid, name, salary, dept)
+#manages(manager, junior)
+#department(did, name, division)
+
+#employee[dept] ⊆ department[did]
+#manages[manager] ⊆ employee[eid]
+#manages[junior] ⊆ employee[eid]
+#sales[eid] ⊆ employee[eid]
+#Write a query to report every department name.
+
+\project_{name}department;
+
+#Write a query to report the name and eid of every employee whose salary is more than 55.
+
+\project_{name,eid} (\select_{salary>55} employee);
+
+#Write a query to report the name and eid of every employee who has recorded at least one sales amount.
+\project_{name,eid} (employee \natural_join sales);
+
+#Write a query to report the name and salary of every manager
+\project_{name,salary} (\select_{manager = eid} (employee \natural_join manages));
+
+#Write a query to report the name, eid and salary of every employee who works in the Widgets department. 
+\project_{employee.name,eid,salary} (\select_{dept = did} ((\select_{name = 'Widgets'} department) \product employee));
+
+#Write a query to report the name and eid of every employee who manages someone who has recorded sales over 50 on a single day.
+\project_{name,eid} \select_{eid = manager} (employee \natural_join (\project_{manager} \select_{junior = sales.eid and amount > 50} (sales \natural_join manages)));
+
+#Write a query to report the eid of everyone who has had a day with sales valued at over 90, but has never had a day with sales valued at over 100.
+\project_{eid} ((\select_{amount > 90} sales ) \intersect (\select_{amount <100} sales));
+
+
+
