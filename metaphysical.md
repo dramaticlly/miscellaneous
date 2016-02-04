@@ -33,7 +33,7 @@ a worldview is characterized by metaphysical components
 **agnosticism**(dont know god exist or not)
 
 ##worldviews
-transition from worldview '==>' changes in core metaphysical beliefs
+transition from worldview '==>' changes in core metaphysical beliefs  
 ```
 metaphysics : a set of views about the world taken as a whole
 ```

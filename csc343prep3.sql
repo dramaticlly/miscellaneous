@@ -37,3 +37,12 @@ where a.countrycode = b.countrycode and a.countrylanguage != b.countrylanguage;
 select distinct a.countrycode as bilingualcode 
 from countrylanguage a, countrylanguage b 
 where a.countrycode = b.countrycode and a.countrylanguage != b.countrylanguage;
+
+
+#\d show all tables
+
+#search path
+# set search_path to university;
+# ctrl a to begin of line
+# select sid, ave(grade) from took group by sid
+# select sid, grade from took order by sid
