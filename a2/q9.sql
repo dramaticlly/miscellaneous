@@ -1,10 +1,32 @@
 SET search_path TO uber, public;
 
-drop view if exists ratedclient;
+drop view if exists ratedclient cascade;
+drop view if exists uniqueCD cascade;
+drop view if exists hasrating cascade;
+drop view if exists diff cascade;
+drop view if exists Dontcare cascade;
+drop view if exists todelete cascade;
 
--- the client has ever rate any ride
+
+-- the client has ever ride with any driver
+/*
+ client_id | driver_id | request_id | rating 
+-----------+-----------+------------+--------
+       100 |     22222 |          2 |      5
+       100 |     22222 |          3 |      5
+       100 |     22222 |          4 |      2
+        99 |     22222 |         10 |      3
+        99 |     54321 |         11 |      3
+       100 |     54321 |         12 |      3
+        99 |     12345 |          1 |      5
+       100 |     22222 |          5 |       
+       100 |     22222 |          8 |       
+       100 |     22222 |          6 |       
+       100 |     22222 |          7 |       
+(11 rows)
+*/
 create view ratedclient as
-	select client.client_id, dispatch.driver_id, DriverRating.request_id 
+	select client.client_id, dispatch.driver_id, dropoff.request_id, driverrating.rating
 	from client 
 	join request
 		on client.client_id = request.client_id
@@ -14,36 +36,68 @@ create view ratedclient as
 		on dispatch.request_id = pickup.request_id
 	join dropoff
 		on pickup.request_id = dropoff.request_id
-	join DriverRating 
+	left join DriverRating 
 		on DriverRating.request_id = dropoff.request_id;
 
-create view uniqueCD as 
-select distinct client_id, driver_id from ratedclient;
-/*
- client_id | driver_id 
------------+-----------
-       100 |     22222
-        99 |     12345
-        99 |     22222
+-- debug
+--select * from driverrating;
+
+-- only rated ride
+create view hasrating as 
+	select * 
+	from ratedclient
+	where rating is not null;
+
+-- debug
+--select * from ratedclient;
+
+-- the request that does not have rating
+-- complement of hasrating
+/* 
+client_id | driver_id | request_id | rating 
+-----------+-----------+------------+--------
+       100 |     22222 |          7 |       
+       100 |     22222 |          5 |       
+       100 |     22222 |          6 |       
+       100 |     22222 |          8 |       
+(4 rows)
 */
+create view diff as
+	(select * from ratedclient)
+	except
+	(select * from hasrating);
+
+-- debug
+--select * from diff;
+
+-- if same client, same driver, 
+-- then we dont care about if rated since at least one rated in hasrated tbl
+create view Dontcare as 
+	select *
+	from diff 
+	where diff.driver_id in 
+	(select driver_id 
+	from hasrating
+	where diff.client_id = hasrating.client_id
+	and diff.driver_id = hasrating.driver_id);
+
+-- the rest of unrated trip matters
+create view todelete as
+	(select * from diff)
+	except
+	(select * from Dontcare);
+
+-- filter out unrated trip with different driver
+create view final as 
+(select client_id from hasrating) 
+except
+(select client_id from todelete);
+
+-- use client_id to find email and order by email asc
+select client.client_id,email
+from client join final
+on client.client_id = final.client_id
+order by email;
 
 
-/*
-select * from retedclient
- client_id | driver_id | request_id 
------------+-----------+------------
-        99 |     12345 |          1
-       100 |     22222 |          2
-       100 |     22222 |          3
-       100 |     22222 |          4
-        99 |     22222 |         10
-*/
--- if i know the driver_id and client_id, 
--- need to make sure this one of the request_id is appeared in driverrating table
 
-
-
-select client.client_id, client.email
-from ratedclient join client 
-on ratedclient.client_id = client.client_id
-group by client.client_id, client.email;
