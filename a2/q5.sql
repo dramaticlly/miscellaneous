@@ -10,7 +10,7 @@ drop view if exists personal cascade;
 drop view if exists p0 cascade;
 drop view if exists m0 cascade;
 drop view if exists raw cascade;
-
+drop view if exists final cascade;
 
 -- join request, dispatch, dropoff together
 create view basicinfo as
@@ -27,9 +27,10 @@ create view basicinfo as
 
 -- list client, req_id based on month/year
 create view my as
-select client_id,request_id, extract(month from datetime) as m, extract(year from datetime) as y
-from basicinfo
-order by y,m;
+  select client_id,request_id, extract(month 
+  from datetime) as m, extract(year from datetime) as y
+  from basicinfo
+  order by y,m;
 
 -- DEBUG select * from my;
 /* client_id | request_id | m   |  y
@@ -113,29 +114,29 @@ create view personal as
 	group by c.client_id,c.y,c.m;
 
 /*
- client_id |  y   | m  | client_id | request_id | m  |  y   | request_id | amount 
------------+------+----+-----------+------------+----+------+------------+--------
-        88 | 2016 |  1 |           |            |    |      |            |       
-        88 | 2014 |  7 |           |            |    |      |            |       
-        88 | 2015 |  7 |           |            |    |      |            |       
-        88 | 2013 |  2 |           |            |    |      |            |       
-        88 | 2015 | 11 |           |            |    |      |            |       
-        99 | 2016 |  1 |        99 |         11 |  1 | 2016 |            |       
-        99 | 2016 |  1 |        99 |          1 |  1 | 2016 |          1 |    8.5
-        99 | 2014 |  7 |           |            |    |      |            |       
-        99 | 2015 |  7 |        99 |         10 |  7 | 2015 |            |       
-        99 | 2013 |  2 |           |            |    |      |            |       
-        99 | 2015 | 11 |           |            |    |      |            |       
-       100 | 2016 |  1 |           |            |    |      |            |       
-       100 | 2014 |  7 |       100 |          5 |  7 | 2014 |          5 |    5.1
-       100 | 2014 |  7 |       100 |          7 |  7 | 2014 |          7 |    6.2
-       100 | 2014 |  7 |       100 |          6 |  7 | 2014 |          6 |    5.8
-       100 | 2015 |  7 |           |            |    |      |            |       
-       100 | 2013 |  2 |       100 |          4 |  2 | 2013 |          4 |  175.5
-       100 | 2013 |  2 |       100 |         12 |  2 | 2013 |            |       
-       100 | 2013 |  2 |       100 |          2 |  2 | 2013 |          2 |  255.2
-       100 | 2013 |  2 |       100 |          3 |  2 | 2013 |          3 |  105.4
-       100 | 2015 | 11 |       100 |          8 | 11 | 2015 |          8 |    5.7
+ client_id |  y   | m  | client_id | request_id | amount 
+-----------+------+----+-----------+------------+--------
+        88 | 2016 |  1 |           |            |       
+        88 | 2014 |  7 |           |            |       
+        88 | 2015 |  7 |           |            |       
+        88 | 2013 |  2 |           |            |       
+        88 | 2015 | 11 |           |            |       
+        99 | 2016 |  1 |        99 |         11 |       
+        99 | 2016 |  1 |        99 |          1 |    8.5
+        99 | 2014 |  7 |           |            |       
+        99 | 2015 |  7 |        99 |         10 |       
+        99 | 2013 |  2 |           |            |       
+        99 | 2015 | 11 |           |            |       
+       100 | 2016 |  1 |           |            |       
+       100 | 2014 |  7 |       100 |          5 |    5.1
+       100 | 2014 |  7 |       100 |          7 |    6.2
+       100 | 2014 |  7 |       100 |          6 |    5.8
+       100 | 2015 |  7 |           |            |       
+       100 | 2013 |  2 |       100 |          4 |  175.5
+       100 | 2013 |  2 |       100 |         12 |       
+       100 | 2013 |  2 |       100 |          2 |  255.2
+       100 | 2013 |  2 |       100 |          3 |  105.4
+       100 | 2015 | 11 |       100 |          8 |    5.7
 (21 rows)
 */
 
@@ -163,9 +164,57 @@ create view raw as
 	where p.total >= m.ave);
 
 -- finally...
-select client_id,
-(to_char(y,'9999')||to_char(m,'99')) as month,
-total,
-comparison
-from raw
-order by y,m,total asc;
+create view final as 
+  select client_id,
+  (to_char(y,'9999')||to_char(m,'99')) as month,
+  total,
+  comparison
+  from raw
+  order by y,m,total,client_id asc;
+
+select * from final;
+
+/*  order diff, and space inbwteen month diff
+===========
+  QUERY 5
+===========
+        Incorrect answer for query 5.
+
+Expected:
+--------- 
+
+ client_id | month  | total | comparison  
+-----------+--------+-------+-------------
+        88 | 2013 2 |     0 | below
+        99 | 2013 2 |     0 | below
+       100 | 2013 2 | 536.1 | at or above
+        88 | 2014 7 |     0 | below
+        99 | 2014 7 |     0 | below
+       100 | 2014 7 |  17.1 | at or above
+        99 | 2015 7 |     0 | below
+        88 | 2015 7 |     0 | below
+       100 | 2015 7 |   5.7 | at or above
+        88 | 2016 1 |     0 | below
+       100 | 2016 1 |     0 | below
+        99 | 2016 1 |   8.5 | at or above
+(12 rows)
+
+Actual:
+------- 
+
+ client_id |  month   | total | comparison  
+-----------+----------+-------+-------------
+        88 |  2013  2 |     0 | below
+        99 |  2013  2 |     0 | below
+       100 |  2013  2 | 536.1 | at or above
+        88 |  2014  7 |     0 | below
+        99 |  2014  7 |     0 | below
+       100 |  2014  7 |  17.1 | at or above
+        88 |  2015  7 |     0 | below
+        99 |  2015  7 |     0 | below
+       100 |  2015  7 |   5.7 | at or above
+        88 |  2016  1 |     0 | below
+       100 |  2016  1 |     0 | below
+        99 |  2016  1 |   8.5 | at or above
+(12 rows)
+*/

@@ -6,6 +6,7 @@ drop view if exists hasrating cascade;
 drop view if exists diff cascade;
 drop view if exists Dontcare cascade;
 drop view if exists todelete cascade;
+drop view if exists ans cascade;
 
 
 -- the client has ever ride with any driver
@@ -26,7 +27,10 @@ drop view if exists todelete cascade;
 (11 rows)
 */
 create view ratedclient as
-	select client.client_id, dispatch.driver_id, dropoff.request_id, driverrating.rating
+	select client.client_id,
+	dispatch.driver_id,
+	dropoff.request_id,
+	driverrating.rating
 	from client 
 	join request
 		on client.client_id = request.client_id
@@ -94,10 +98,19 @@ except
 (select client_id from todelete);
 
 -- use client_id to find email and order by email asc
-select client.client_id,email
-from client join final
-on client.client_id = final.client_id
-order by email;
+create view ans as
+	select client.client_id,email
+	from client join final
+	on client.client_id = final.client_id
+	order by email;
 
+select * from ans;
+
+/*
+===========
+  QUERY 9
+===========
+        Correct answer for query 9.
+*/
 
 
